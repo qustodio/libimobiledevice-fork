@@ -43,6 +43,7 @@ cython/*.c
 doxygen.cfg
 dependencies
 test-driver
+.DS_Store
 
 # Build
 
