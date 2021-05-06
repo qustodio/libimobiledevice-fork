@@ -49,6 +49,8 @@ static void print_usage(void)
 	printf("  -d, --debug\t\tenable communication debugging\n");
 	printf("  -h, --help\t\tprint usage information\n");
 	printf("  -v, --version\t\tprint version information\n");
+	printf("  -e, --enable\t\tenable WiFi sync\n");
+	printf("  -f, --disable\t\tdisable WiFi sync\n");
 	printf("\n");
 	printf("Homepage:    <" PACKAGE_URL ">\n");
 	printf("Bug Reports: <" PACKAGE_BUGREPORT ">\n");
@@ -57,12 +59,15 @@ static void print_usage(void)
 int main(int argc, char** argv)
 {
 	int c = 0;
+	char enable_disable = 0;
 	const struct option longopts[] = {
 		{ "udid",    required_argument, NULL, 'u' },
 		{ "network", no_argument,       NULL, 'n' },
 		{ "debug",   no_argument,       NULL, 'd' },
 		{ "help",    no_argument,       NULL, 'h' },
 		{ "version", no_argument,       NULL, 'v' },
+		{ "enable",  no_argument, 	    NULL, 'e' },
+		{ "disable",  no_argument, 	    NULL, 'f' },
 		{ NULL, 0, NULL, 0}
 	};
 	int res = -1;
@@ -73,7 +78,7 @@ int main(int argc, char** argv)
 	signal(SIGPIPE, SIG_IGN);
 #endif
 
-	while ((c = getopt_long(argc, argv, "du:hnv", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "du:hnvef", longopts, NULL)) != -1) {
 		switch (c) {
 		case 'u':
 			if (!*optarg) {
@@ -95,6 +100,14 @@ int main(int argc, char** argv)
 		case 'v':
 			printf("%s %s\n", TOOL_NAME, PACKAGE_VERSION);
 			return 0;
+		case 'e':
+			printf("Enabling WiFi Sync\n");
+			enable_disable = 'e';
+			break;
+		case 'f':
+			printf("Disabling WiFi Sync\n");
+			enable_disable = 'f';
+			break;
 		default:
 			print_usage();
 			return 2;
@@ -104,7 +117,9 @@ int main(int argc, char** argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc > 1) {
+	printf("enable_disable option is %c", enable_disable);
+
+	if (argc > 1 && enable_disable != 'e' && enable_disable != 'f') {
 		print_usage();
 		return -1;
 	}
@@ -112,9 +127,9 @@ int main(int argc, char** argv)
 	idevice_t device = NULL;
 	if (idevice_new_with_options(&device, udid, (use_network) ? IDEVICE_LOOKUP_NETWORK : IDEVICE_LOOKUP_USBMUX) != IDEVICE_E_SUCCESS) {
 		if (udid) {
-			fprintf(stderr, "ERROR: No device found with udid %s.\n", udid);
+			printf(stderr, "ERROR: No device found with udid %s.\n", udid);
 		} else {
-			fprintf(stderr, "ERROR: No device found.\n");
+			printf(stderr, "ERROR: No device found.\n");
 		}
 		return -1;
 	}
@@ -127,7 +142,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	if (argc == 0) {
+	if (argc == 0 && enable_disable != 'e' && enable_disable != 'f') {
 		// getting device name
 		char* name = NULL;
 		lerr = lockdownd_get_device_name(lockdown, &name);
@@ -137,6 +152,22 @@ int main(int argc, char** argv)
 			res = 0;
 		} else {
 			fprintf(stderr, "ERROR: Could not get device name, lockdown error %d\n", lerr);
+		}
+	} else if (enable_disable == 'e') {
+		lerr = lockdownd_set_value(lockdown, "com.apple.mobile.wireless_lockdown", "EnableWifiConnections", plist_new_string("true"));
+		if (lerr == LOCKDOWN_E_SUCCESS) {
+			printf("Device WiFi sync has been enabled\n");
+			res = 0;
+		} else {
+			fprintf(stderr, "ERROR: Could not enable WiFi sync, lockdown error %d\n", lerr);
+		}
+	} else if (enable_disable == 'f') {
+		lerr = lockdownd_set_value(lockdown, "com.apple.mobile.wireless_lockdown", "EnableWifiConnections", plist_new_string("false"));
+		if (lerr == LOCKDOWN_E_SUCCESS) {
+			printf("Device WiFi sync has been disabled\n");
+			res = 0;
+		} else {
+			fprintf(stderr, "ERROR: Could not disable WiFi sync, lockdown error %d\n", lerr);
 		}
 	} else {
 		// setting device name
