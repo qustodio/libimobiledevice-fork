@@ -100,6 +100,12 @@ By default, OpenSSL will be used. If you prefer GnuTLS, configure with
 ./autogen.sh --disable-openssl
 ```
 
+### MAC
+
+- Using brew run: `brew install make automake autoconf libtool pkg-config gcc`.
+- Then run: `install-libimobiledevice.sh`.
+- You will find all the binaries in: `dependencies/bin` path.
+
 ## Usage
 
 Documentation about using the library in your application is not available yet.
