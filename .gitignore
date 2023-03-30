@@ -41,5 +41,10 @@ tools/idevice*
 cython/.libs/*
 cython/*.c
 doxygen.cfg
-dependencies
 test-driver
+
+# Custom scripts
+__pycache__/
+dependencies/
+tmp/
+build/
