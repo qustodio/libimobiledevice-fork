@@ -46,3 +46,4 @@ doxygen.cfg
 __pycache__/
 dependencies/
 tmp/
+build/

@@ -147,17 +147,8 @@ def install_lib_ifneeded(name: str, url: str, commit: str, is_pkg_config: bool =
             environment['PKG_CONFIG_PATH'] = f'{INSTALL_DIR}/lib/pkgconfig:/mingw64/lib/pkgconfig'
         else:
             environment['PKG_CONFIG_PATH'] = f'{INSTALL_DIR}/lib/pkgconfig'
-    if is_ld_library:
-        environment['LD_LIBRARY_PATH'] = f'{INSTALL_DIR}/lib'
-    if is_cdpath:
-        if openssl_path is not None:
-            environment['CPATH'] = '/mingw64/include/openssl'
-            if OPERATING_SYSTEM.find('MINGW64') > -1:
-                shell(f'cp /mingw64/lib/libssl.dll.a /mingw64/lib/libcrypto.dll.a {INSTALL_DIR}/lib')
-                shell(f'cp /mingw64/bin/libssl*.dll /mingw64/bin/libcrypto*.dll {INSTALL_DIR}/lib')
-            print('ok')
-        else:
-            environment['CPATH'] = f'{INSTALL_DIR}/include/openssl'
+
+    environment['CPATH'] = f'{INSTALL_DIR}/include/openssl'
             
 
     operating_system = OPERATING_SYSTEM
@@ -168,7 +159,7 @@ def install_lib_ifneeded(name: str, url: str, commit: str, is_pkg_config: bool =
         shell('./autogen.sh', cwd=lib_dir, env=environment)
         shell(f'./configure --prefix={INSTALL_DIR} --without-cython', cwd=lib_dir, env=environment)
     elif operating_system.find('MINGW') > -1:
-        shell(f'./autogen.sh CC=gcc CXX=g++ --prefix={INSTALL_DIR} --without-cython', cwd=lib_dir, env=environment)
+        shell(f'./autogen.sh CC=gcc CXX=g++ --prefix={INSTALL_DIR} --without-cython --enable-debug', cwd=lib_dir, env=environment)
 
     make(cwd=lib_dir, env=environment)
     make('install', cwd=lib_dir, env=environment)
@@ -207,6 +198,30 @@ def change_dylib_path_to_relative():
     for library in [libssl, libcrypto, libplist, libusbmuxd]:
         install_name_tool('-change', library, libimobiledevice)
 
+
+def build_libimobiledevice():
+    print(get_title('libimobiledevice'))
+    environment = os.environ.copy()
+    openssl_path = shutil.which('openssl')
+    if openssl_path is not None:
+        environment['PKG_CONFIG_PATH'] = f'{INSTALL_DIR}/lib/pkgconfig:/mingw64/lib/pkgconfig'
+    else:
+        exit('OpenSSL not found!')
+
+    environment['LD_LIBRARY_PATH'] = f'{INSTALL_DIR}/lib'
+
+    if OPERATING_SYSTEM.find('MINGW64') > -1:
+        shell(f'cp /mingw64/lib/libssl.dll.a /mingw64/lib/libcrypto.dll.a {INSTALL_DIR}/lib')
+        shell(f'cp /mingw64/bin/libssl*.dll /mingw64/bin/libcrypto*.dll {INSTALL_DIR}/lib')
+
+    build_path = f'{ROOT_PATH}/build'
+    shell(f'./autogen.sh CC=gcc CXX=g++ --prefix={build_path} --without-cython --enable-debug', env=environment)
+    make(env=environment)
+    make('install', env=environment)
+
+    shell(F'cp {INSTALL_DIR}/lib/*.dll {build_path}/bin')
+
+
 # RUN SCRIPT
 if __name__ == "__main__":
     print('ROOT_PATH: ', ROOT_PATH)
@@ -230,6 +245,8 @@ if __name__ == "__main__":
         if OPERATING_SYSTEM.find('MINGW') > -1:
             shell("cp dependencies/bin/*.dll dependencies/lib")
         shutil.rmtree(f'{INSTALL_DIR}/bin')
+
+    build_libimobiledevice()
 
     if OPERATING_SYSTEM == "Darwin":
         change_dylib_path_to_relative()
