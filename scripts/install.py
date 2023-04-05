@@ -16,10 +16,6 @@ def get_relative_path(path: str) -> str:
 
 DEPENDENCIES_FILE = get_relative_path('dependencies.json')
 
-# msys2
-# pacman -S mingw-w64-x86_64-gcc python git autoconf automake make pkg-config
-#build-essential         checkinstall     git     autoconf     automake
-
 
 def get_dependencies():
     with open(DEPENDENCIES_FILE) as file:
@@ -133,8 +129,8 @@ def is_openssl_installed() -> bool:
     operating_system = OPERATING_SYSTEM
     if operating_system == 'Darwin':
         return os.path.isfile(OPENSSL_CHECK_FILE)
-    
-    return glob.glob(f"{INSTALL_DIR}/lib/libssl*.dll") and glob.glob("{INSTALL_DIR}/lib/libcrypto*.dll")
+
+    return bool(glob.glob(f"{INSTALL_DIR}/lib/libssl*.dll")) and bool(glob.glob(f"{INSTALL_DIR}/lib/libcrypto*.dll"))
 
 
 def install_lib_ifneeded(name: str, url: str, commit: str, is_pkg_config: bool = False, is_ld_library: bool = False, is_cdpath: bool = False):

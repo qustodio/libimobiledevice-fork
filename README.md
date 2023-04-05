@@ -127,6 +127,8 @@ MbedTLS headers and `mbedtls_LIBDIR` to set the library path. Optionally,
 - Add the public key on your github `cat ~/.ssh/id_rsa.pub`.
 - Clone the libimobiledevice repo: `git clone git@github.com:qustodio/libimobiledevice-fork.git` 
 - Run: `scripts/bootstrap-win.sh` for installing develop tools.
+- Run: `scripts/install.py` for building libimobiledevice and all dependencies.
+- Find the libimobiledevices binaries on: `build/bin`.
 
 ## Usage
 
