@@ -16,6 +16,10 @@ def get_relative_path(path: str) -> str:
 
 DEPENDENCIES_FILE = get_relative_path('dependencies.json')
 
+# msys2
+# pacman -S mingw-w64-x86_64-gcc python git autoconf automake make pkg-config
+#build-essential         checkinstall     git     autoconf     automake
+
 
 def get_dependencies():
     with open(DEPENDENCIES_FILE) as file:
@@ -228,7 +232,7 @@ if __name__ == "__main__":
 
     if not os.path.isdir(INSTALL_DIR):
         print("🛠 Don't worry building it for you...")
-  
+
     if not os.path.isdir(TMP_PATH):
         os.mkdir(TMP_PATH)
 
