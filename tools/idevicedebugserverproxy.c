@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include <errno.h>
 #include <signal.h>
 #ifdef WIN32
@@ -41,14 +42,20 @@
 #include <libimobiledevice/libimobiledevice.h>
 #include <libimobiledevice/debugserver.h>
 
-#include "common/socket.h"
-#include "common/thread.h"
+#include <libimobiledevice-glue/socket.h>
+#include <libimobiledevice-glue/thread.h>
+
+#ifndef ETIMEDOUT
+#define ETIMEDOUT 138
+#endif
 
 #define info(...) fprintf(stdout, __VA_ARGS__); fflush(stdout)
 #define debug(...) if(debug_mode) fprintf(stdout, __VA_ARGS__)
 
+static int support_lldb = 0;
 static int debug_mode = 0;
 static int quit_flag = 0;
+static uint16_t local_port = 0;
 
 typedef struct {
 	int client_fd;
@@ -71,24 +78,47 @@ static void clean_exit(int sig)
 	quit_flag++;
 }
 
-static void print_usage(int argc, char **argv)
+static void print_usage(int argc, char **argv, int is_error)
 {
-	char *name = NULL;
+	char *name = strrchr(argv[0], '/');
+	fprintf(is_error ? stderr : stdout, "Usage: %s [OPTIONS] [PORT]\n", (name ? name + 1: argv[0]));
+	fprintf(is_error ? stderr : stdout,
+		"\n"
+		"Proxy debugserver connection from device to a local socket at PORT.\n"
+		"If PORT is omitted, the next available port will be used and printed\n"
+		"to stdout.\n"
+		"\n"
+		"OPTIONS:\n"
+		"  -u, --udid UDID       target specific device by UDID\n"
+		"  -n, --network         connect to network device\n"
+		"  -d, --debug           enable communication debugging\n"
+		"  -l, --lldb            enable lldb support\n"
+		"  -h, --help            prints usage information\n"
+		"  -v, --version         prints version information\n"
+		"\n"
+		"Homepage:    <" PACKAGE_URL ">\n"
+		"Bug Reports: <" PACKAGE_BUGREPORT ">\n"
+	);
+}
 
-	name = strrchr(argv[0], '/');
-	printf("Usage: %s [OPTIONS] <PORT>\n", (name ? name + 1: argv[0]));
-	printf("\n");
-	printf("Proxy debugserver connection from device to a local socket at PORT.\n");
-	printf("\n");
-	printf("OPTIONS:\n");
-	printf("  -u, --udid UDID\ttarget specific device by UDID\n");
-	printf("  -n, --network\t\tconnect to network device\n");
-	printf("  -d, --debug\t\tenable communication debugging\n");
-	printf("  -h, --help\t\tprints usage information\n");
-	printf("  -v, --version\t\tprints version information\n");
-	printf("\n");
-	printf("Homepage:    <" PACKAGE_URL ">\n");
-	printf("Bug Reports: <" PACKAGE_BUGREPORT ">\n");
+static int intercept_packet(char *packet, ssize_t *packet_len) {
+	static const char kReqLaunchServer[] = "$qLaunchGDBServer;#4b";
+
+	char buffer[64] = {0};
+	if (*packet_len == (ssize_t)(sizeof(kReqLaunchServer) - 1)
+		&& memcmp(packet, kReqLaunchServer, sizeof(kReqLaunchServer) - 1) == 0) {
+		sprintf(buffer, "port:%d;", local_port);
+	} else {
+		return 0;
+	}
+	int sum = 0;
+	for (size_t i = 0; i < strlen(buffer); i++) {
+		sum += buffer[i];
+	}
+	sum = sum & 255;
+	sprintf(packet, "$%s#%02x", buffer, sum);
+	*packet_len = strlen(packet);
+	return 1;
 }
 
 static void* connection_handler(void* data)
@@ -130,7 +160,10 @@ static void* connection_handler(void* data)
 				fprintf(stderr, "connection closed\n");
 				break;
 			}
-
+			if (support_lldb && intercept_packet(buf, &n)) {
+				socket_send(client_fd, buf, n);
+				continue;
+			}
 			uint32_t sent = 0;
 			debugserver_client_send(socket_info->debugserver_client, buf, n, &sent);
 		}
@@ -173,10 +206,18 @@ int main(int argc, char *argv[])
 	thread_info_t *thread_list = NULL;
 	const char* udid = NULL;
 	int use_network = 0;
-	uint16_t local_port = 0;
 	int server_fd;
 	int result = EXIT_SUCCESS;
-	int i;
+	int c = 0;
+	const struct option longopts[] = {
+		{ "debug", no_argument, NULL, 'd' },
+		{ "help", no_argument, NULL, 'h' },
+		{ "udid", required_argument, NULL, 'u' },
+		{ "network", no_argument, NULL, 'n' },
+		{ "lldb", no_argument, NULL, 'l' },
+		{ "version", no_argument, NULL, 'v' },
+		{ NULL, 0, NULL, 0}
+	};
 
 #ifndef WIN32
 	struct sigaction sa;
@@ -201,49 +242,43 @@ int main(int argc, char *argv[])
 #endif
 
 	/* parse cmdline arguments */
-	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
+	while ((c = getopt_long(argc, argv, "dhu:nv", longopts, NULL)) != -1) {
+		switch (c) {
+		case 'd':
 			debug_mode = 1;
 			idevice_set_debug_level(1);
 			socket_set_verbose(3);
-			continue;
-		}
-		else if (!strcmp(argv[i], "-u") || !strcmp(argv[i], "--udid")) {
-			i++;
-			if (!argv[i] || !*argv[i]) {
-				print_usage(argc, argv);
-				return 0;
+			break;
+		case 'u':
+			if (!*optarg) {
+				fprintf(stderr, "ERROR: UDID argument must not be empty!\n");
+				print_usage(argc, argv, 1);
+				return 2;
 			}
-			udid = argv[i];
-			continue;
-		}
-		else if (!strcmp(argv[i], "-n") || !strcmp(argv[i], "--network")) {
+			udid = optarg;
+			break;
+		case 'n':
 			use_network = 1;
-			continue;
-		}
-		else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
-			print_usage(argc, argv);
-			return EXIT_SUCCESS;
-		}
-		else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version")) {
+			break;
+		case 'l':
+			support_lldb = 1;
+			break;
+		case 'h':
+			print_usage(argc, argv, 0);
+			return 0;
+		case 'v':
 			printf("%s %s\n", TOOL_NAME, PACKAGE_VERSION);
-			return EXIT_SUCCESS;
-		}
-		else if (atoi(argv[i]) > 0) {
-			local_port = atoi(argv[i]);
-			continue;
-		}
-		else {
-			print_usage(argc, argv);
-			return EXIT_SUCCESS;
+			return 0;
+		default:
+			print_usage(argc, argv, 1);
+			return 2;
 		}
 	}
+	argc -= optind;
+	argv += optind;
 
-	/* a PORT is mandatory */
-	if (!local_port) {
-		fprintf(stderr, "Please specify a PORT.\n");
-		print_usage(argc, argv);
-		goto leave_cleanup;
+	if (argv[0] && (atoi(argv[0]) > 0)) {
+		local_port = atoi(argv[0]);
 	}
 
 	/* start services and connect to device */
@@ -264,6 +299,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Could not create socket\n");
 		result = EXIT_FAILURE;
 		goto leave_cleanup;
+	}
+
+	if (local_port == 0) {
+		/* The user asked for any available port. Report the actual port. */
+		uint16_t port;
+		if (0 > socket_get_socket_port(server_fd, &port)) {
+			fprintf(stderr, "Could not determine socket port\n");
+			result = EXIT_FAILURE;
+			goto leave_cleanup;
+		}
+		printf("Listening on port %d\n", port);
 	}
 
 	while (!quit_flag) {

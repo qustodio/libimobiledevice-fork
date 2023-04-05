@@ -34,7 +34,7 @@
 #include "device_link_service.h"
 #include "common/debug.h"
 
-#define MSYNC_VERSION_INT1 300
+#define MSYNC_VERSION_INT1 400
 #define MSYNC_VERSION_INT2 100
 
 #define EMPTY_PARAMETER_STRING "___EmptyParameterString___"
@@ -473,7 +473,7 @@ LIBIMOBILEDEVICE_API mobilesync_error_t mobilesync_clear_all_records_on_device(m
 		goto out;
 	}
 
-	if (strcmp(response_type, "SDMessageDeviceWillClearAllRecords")) {
+	if (strcmp(response_type, "SDMessageDeviceWillClearAllRecords") != 0) {
 		err = MOBILESYNC_E_PLIST_ERROR;
 	}
 
