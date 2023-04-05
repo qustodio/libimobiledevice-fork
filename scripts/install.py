@@ -228,6 +228,8 @@ if __name__ == "__main__":
 
     if not os.path.isdir(INSTALL_DIR):
         print("🛠 Don't worry building it for you...")
+  
+    if not os.path.isdir(TMP_PATH):
         os.mkdir(TMP_PATH)
 
     # Install Openssl

@@ -113,6 +113,21 @@ MbedTLS headers and `mbedtls_LIBDIR` to set the library path. Optionally,
 ./autogen.sh --with-mbedtls mbedtls_INCLUDES=/opt/local/include mbedtls_LIBDIR=/opt/local/lib
 ```
 
+### MAC
+
+- Using brew run: `brew install make automake autoconf libtool pkg-config gcc`.
+- Then run: `install-libimobiledevice.sh`.
+- You will find all the binaries in: `dependencies/bin` path.
+
+### Windows
+
+- Install msys2 win64: [https://www.msys2.org/](https://www.msys2.org/)
+- Install git: `pacman -S git`.
+- Generate a new ssh key with: `ssh-keygen -t rsa -b 4096`.
+- Add the public key on your github `cat ~/.ssh/id_rsa.pub`.
+- Clone the libimobiledevice repo: `git clone git@github.com:qustodio/libimobiledevice-fork.git` 
+- Run: `scripts/bootstrap-win.sh` for installing develop tools.
+
 ## Usage
 
 Documentation about using the library in your application is not available yet.
