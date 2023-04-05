@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 				wifiopt = WIFI_DISABLE;
 			}else{
 				printf("ERROR: Invalid wifi command option '%s' specified\n", (argv+optind+1)[0]);
-				print_usage(argc, argv);
+				print_usage(argc, argv, 1);
 				exit(EXIT_FAILURE);
 			}
 		} 
