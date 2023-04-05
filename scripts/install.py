@@ -110,12 +110,9 @@ def get_openssl_configuration() -> str:
 
 
 def install_openssl_ifneeded():
-    if os.path.isfile(OPENSSL_CHECK_FILE):
-        return
-
     print(get_title('openssl'))
 
-    if shutil.which('openssl') is not None:
+    if is_openssl_installed():
         print('Openssl already installed')
         return
 
@@ -130,6 +127,14 @@ def install_openssl_ifneeded():
     make('install_sw', cwd=openssl_dir)
 
     print(get_install_successfully('openssl'))
+
+
+def is_openssl_installed() -> bool:
+    operating_system = OPERATING_SYSTEM
+    if operating_system == 'Darwin':
+        return os.path.isfile(OPENSSL_CHECK_FILE)
+    
+    return glob.glob(f"{INSTALL_DIR}/lib/libssl*.dll") and glob.glob("{INSTALL_DIR}/lib/libcrypto*.dll")
 
 
 def install_lib_ifneeded(name: str, url: str, commit: str, is_pkg_config: bool = False, is_ld_library: bool = False, is_cdpath: bool = False):
@@ -213,10 +218,6 @@ def build_libimobiledevice():
         exit('OpenSSL not found!')
 
     environment['LD_LIBRARY_PATH'] = f'{INSTALL_DIR}/lib'
-
-    if OPERATING_SYSTEM.find('MINGW64') > -1:
-        shell(f'cp /mingw64/lib/libssl.dll.a /mingw64/lib/libcrypto.dll.a {INSTALL_DIR}/lib')
-        shell(f'cp /mingw64/bin/libssl*.dll /mingw64/bin/libcrypto*.dll {INSTALL_DIR}/lib')
 
     build_path = f'{ROOT_PATH}/build'
     shell(f'./autogen.sh CC=gcc CXX=g++ --prefix={build_path} --without-cython --enable-debug', env=environment)

@@ -6,4 +6,4 @@ pacman -S base-devel \
     make \
     libtool \
     autoconf \
-    automake-wrapper 
+    automake-wrapper
