@@ -43,3 +43,8 @@ cython/*.c
 doxygen.cfg
 dependencies
 test-driver
+
+# Build
+
+build/
+scripts/__pycache__/
