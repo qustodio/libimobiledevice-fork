@@ -39,6 +39,7 @@ to:
 * Mount filesystem images
 * Forward device notifications
 * Manage device provisioning
+* Manage device configuration profiles
 * Take screenshots from the device screen (requires mounted developer image)
 * Simulate changed geolocation of the device (requires mounted developer image)
 * Relay the syslog of the device
@@ -113,6 +114,12 @@ MbedTLS headers and `mbedtls_LIBDIR` to set the library path. Optionally,
 ./autogen.sh --with-mbedtls mbedtls_INCLUDES=/opt/local/include mbedtls_LIBDIR=/opt/local/lib
 ```
 
+### MAC
+
+- Using brew run: `brew install make automake autoconf libtool pkg-config gcc`.
+- Then run: `install-libimobiledevice.sh`.
+- You will find all the binaries in: `dependencies/bin` path.
+
 ## Usage
 
 Documentation about using the library in your application is not available yet.
@@ -141,6 +148,7 @@ The library bundles the following command-line utilities in the tools directory:
 | `idevicenotificationproxy` | Post or observe notifications on a device                          |
 | `idevicepair`              | Manage host pairings with devices and usbmuxd                      |
 | `ideviceprovision`         | Manage provisioning profiles on a device                           |
+| `ideviceprofile`           | Manage configuration profiles on a device                           |
 | `idevicescreenshot`        | Gets a screenshot from the connected device                        |
 | `idevicesetlocation`       | Simulate location on device                                        |
 | `idevicesyslog`            | Relay syslog of a connected device                                 |
