@@ -41,3 +41,16 @@ tools/idevice*
 cython/.libs/*
 cython/*.c
 doxygen.cfg
+test-driver
+
+# Custom scripts
+__pycache__/
+dependencies/
+tmp/
+build/
+
+# Custom scripts
+__pycache__/
+dependencies/
+tmp/
+build/

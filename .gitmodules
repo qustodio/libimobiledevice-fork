@@ -1,0 +1,12 @@
+[submodule "3rd_party/libusbmuxd"]
+	path = 3rd_party/libusbmuxd
+	url = git@github.com:libimobiledevice/libusbmuxd.git
+[submodule "3rd_party/libplist"]
+	path = 3rd_party/libplist
+	url = git@github.com:libimobiledevice/libplist.git
+[submodule "3rd_party/libimobiledevice-glue"]
+	path = 3rd_party/libimobiledevice-glue
+	url = git@github.com:libimobiledevice/libimobiledevice-glue.git
+[submodule "3rd_party/openssl"]
+	path = 3rd_party/openssl
+	url = git@github.com:openssl/openssl.git
